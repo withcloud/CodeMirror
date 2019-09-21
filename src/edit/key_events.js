@@ -145,8 +145,7 @@ export function onKeyUp(e) {
   signalDOMEvent(this, e)
 }
 
-export function onKeyPress(e) {
-  let cm = this
+function onKeyPressOriginal(e, cm) {
   if (eventInWidget(cm.display, e) || signalDOMEvent(cm, e) || e.ctrlKey && !e.altKey || mac && e.metaKey) return
   let keyCode = e.keyCode, charCode = e.charCode
   if (presto && keyCode == lastStoppedKey) {lastStoppedKey = null; e_preventDefault(e); return}
@@ -155,5 +154,30 @@ export function onKeyPress(e) {
   // Some browsers fire keypress events for backspace
   if (ch == "\x08") return
   if (handleCharBinding(cm, e, ch)) return
-  cm.display.input.onKeyPress(e)
+  var userAgent = window.navigator.userAgent.toLowerCase()
+  if (!(userAgent.indexOf('iphone') != -1 || userAgent.indexOf('ipad') != -1 || userAgent.indexOf('android') != -1)) {
+      cm.display.input.onKeyPress(e);
+  }
+}
+
+function onKeyPressMobile(e, cm) {
+  if(e.which >= 0x10000) {
+    return
+  }
+  if(!cm.display.input.composing) {
+    cm.keyPressTimer = setTimeout( () => {
+      onKeyPressOriginal.call(this, e, cm)
+    }, 30)
+  }
+}
+
+export function onKeyPress(e) {
+  // XXX
+  let cm = this
+  var userAgent = window.navigator.userAgent.toLowerCase()
+  if (userAgent.indexOf('iphone') != -1 || userAgent.indexOf('ipad') != -1 || userAgent.indexOf('android') != -1) {
+    onKeyPressMobile(e, cm)
+  } else {
+    onKeyPressOriginal(e, cm)
+  }
 }
